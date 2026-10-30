@@ -1,0 +1,444 @@
+/* doc-ui tokens — 생성본, 고치지 않는다. 원본: ui-base/base.css + ~/.claude/skills/ui-base/themes/notion.css + doc-ui/{doc.css}
+   다시 만들기: node ~/.claude/skills/ui-base/build.mjs doc-ui --theme notion
+   붙이는 법: 화면 파일 옆에 두고 <link rel="stylesheet" href="tokens.css"> 또는 <style> 에 인라인. 외부 요청 없음. */
+
+/* ───────────── ui-base/base.css ───────────── */
+/* ui-base/base.css — 모든 디자인 스킬이 같이 쓰는 단계 값. 색·질감은 themes/<이름>.css, 꼴은 각 스킬 CSS.
+   직접 붙이지 않고 build.mjs 가 base + 테마 + 스킬을 한 파일(tokens.css)로 합친다(README "붙이는 법").
+   외부 요청 없음. 글꼴은 시스템 설치 Pretendard → 시스템 글꼴 순(README "글꼴"). */
+
+:root {
+  color-scheme: light;
+
+  /* 글꼴 */
+  --font-sans: "Pretendard Variable", Pretendard, "Segoe UI Variable Text", "Segoe UI",
+    "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "D2Coding", Consolas, "SF Mono", monospace;
+
+  /* 글자 크기 단계 */
+  --fs-hero: 3.5rem;      /* 56px  화면의 답 하나 */
+  --fs-display: 2.5rem;   /* 40px  두 번째 숫자·큰 제목 */
+  --fs-title: 1.5rem;     /* 24px  카드·절 제목(문장) */
+  --fs-lead: 1.25rem;     /* 20px  요약 문장 */
+  --fs-body: 1.0625rem;   /* 17px  본문 */
+  --fs-small: 0.9375rem;  /* 15px  보조 줄 */
+  --fs-caption: 0.8125rem;/* 13px  기준·시각 */
+  --lh-tight: 1.15;
+  --lh-body: 1.6;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --ls-hero: -0.02em;
+
+  /* 간격 */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+  --content-max: 1280px;   /* 본문 최대 폭 — 넓은 화면에서 줄이 너무 길어지지 않게 */
+
+  /* 반경 */
+  --r-sm: 12px;
+  --r-md: 20px;
+  --r-lg: 28px;
+  --r-pill: 999px;
+
+  /* 전환 */
+  --t-fast: 160ms;   /* 눌림·호버 */
+  --t-base: 240ms;   /* 펼침·색 */
+  --t-slow: 360ms;   /* 패널 떠오름 */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.25, 0.64, 1);
+
+  /* 폰 — 미디어 쿼리는 변수를 못 읽으므로 기준 폭 599px 은 아래에 글자로 적는다. 여기 값은 넓은 화면 기본값 */
+  --touch: 44px;               /* 누르는 것의 최소 한 변 — 폰에서만 강제, 넓은 화면은 마우스라 40 도 된다 */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* 폰 — 약 360~430px(기준 390×844). 위계는 그대로, 값만 한 단계 줄인다(phone.md).
+   기준 폭 599px 은 Material 3 compact 와 같은 값 — 폰 세로·작은 폰 가로까지. */
+@media (max-width: 599px) {
+  :root {
+    /* 글자 — 큰 숫자는 두 단계 내리고 본문은 한 단계 */
+    --fs-hero: 2.5rem;        /* 40px */
+    --fs-display: 1.875rem;   /* 30px */
+    --fs-title: 1.25rem;      /* 20px */
+    --fs-lead: 1.125rem;      /* 18px */
+    --fs-body: 1rem;          /* 16px */
+    --fs-small: 0.875rem;     /* 14px */
+    --fs-caption: 0.75rem;    /* 12px */
+    /* 간격 — 카드 안 24·카드 사이 20. 1~4 단계는 손대지 않는다 */
+    --sp-5: 20px;
+    --sp-6: 24px;
+    --sp-7: 32px;
+    --sp-8: 48px;
+    /* 반경 — 창이 좁으면 28 은 둔해 보인다. 동심 규칙(바깥 − 여백 = 안쪽)은 20 − 8 = 12 로 유지 */
+    --r-md: 16px;
+    --r-lg: 20px;
+  }
+}
+
+
+/* ───────────── doc-ui/doc.css ───────────── */
+/* doc-ui/doc.css — 문서·보고서 꼴: 글이 주인공, 카드·유리 없음, 넓은 화면에선 왼쪽 목차 레일, 인쇄는 라이트.
+   직접 붙이지 않는다 — tokens.css(생성본)를 붙인다. 고친 뒤 `node ~/.claude/skills/ui-base/build.mjs doc-ui`. */
+
+:root {
+  --doc-paper: var(--paper, #ffffff);   /* 테마의 종이 */
+  --doc-measure: 36em;         /* 본문 폭 — 17px 에서 한국어 약 38~40자(WCAG CJK 40자) */
+  --doc-lh: 1.75;              /* 한국어 본문 줄 간격 — 글자 속공간이 꽉 차 라틴 1.5 보다 넓게 */
+  --doc-rail: 14rem;           /* 넓은 화면 목차 레일 폭 */
+}
+
+/* 종이 */
+.doc {
+  margin: 0;
+  background: var(--doc-paper);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--doc-lh);
+  -webkit-font-smoothing: antialiased;
+  word-break: keep-all;
+  overflow-wrap: break-word;   /* anywhere 는 표 칸의 최소 폭까지 줄여 "1주/차" 처럼 낱말을 쪼갠다 */
+}
+.doc *, .doc *::before, .doc *::after { box-sizing: border-box; }
+
+/* 판 — 좁으면 한 열(머리 → 요약 → 목차 → 본문), 넓으면 목차가 왼쪽 레일로 빠진다 */
+.doc-article {
+  max-width: calc(var(--doc-measure) + 2 * var(--sp-5));   /* 여백 안쪽 글 폭이 --doc-measure */
+  margin: 0 auto;
+  padding: var(--sp-8) var(--sp-5) var(--sp-8);
+}
+@media (min-width: 1200px) {
+  .doc-article {
+    max-width: none;
+    display: grid;
+    grid-template-columns: var(--doc-rail) var(--doc-measure);
+    column-gap: var(--sp-8);
+    justify-content: center;
+    align-items: start;
+  }
+  .doc-article > * { grid-column: 2; }
+  .doc-article > .doc-toc { grid-column: 1; grid-row: 1 / span 200; align-self: stretch; margin: 0; padding: 0; background: none; }
+  .doc-toc > * { position: sticky; top: var(--sp-6); }
+}
+
+/* 머리 — 제목, 그 아래 한 줄 메타(작성·날짜·판). 위에 붙는 작은 대문자 라벨(eyebrow)은 두지 않는다 */
+.doc-head { margin-bottom: var(--sp-6); }
+.doc h1 {
+  margin: 0 0 var(--sp-3);
+  font-family: var(--font-display, inherit);
+  font-size: var(--fs-display);
+  font-weight: var(--fw-display, var(--fw-bold));
+  line-height: 1.25;
+  letter-spacing: var(--ls-display, var(--ls-hero));
+  text-wrap: balance;
+}
+.doc-meta { margin: 0; color: var(--fg-3); font-size: var(--fs-small); }
+
+/* 요약 — 제목 바로 아래, 3줄 안팎. 읽는 사람이 여기서 멈춰도 결론·숫자·다음 할 일을 안다 */
+.doc-summary {
+  margin: 0 0 var(--sp-6);
+  padding: var(--sp-5);
+  border-radius: var(--card-r, var(--r-md));
+  background: var(--summary-bg, var(--accent-soft));
+}
+.doc-summary > :first-child { margin-top: 0; }
+.doc-summary > :last-child { margin-bottom: 0; }
+.doc-summary p, .doc-summary li { margin: 0 0 var(--sp-2); }
+.doc-summary strong { color: var(--fg); }
+
+/* 목차 — 좁은 화면에선 요약 아래 목록, 넓은 화면에선 레일 */
+.doc-toc { margin: 0 0 var(--sp-7); font-size: var(--fs-small); line-height: 1.5; }
+.doc-toc-title { margin: 0 0 var(--sp-2); color: var(--fg-3); font-weight: var(--fw-semibold); font-size: var(--fs-caption); }
+.doc-toc ol { margin: 0; padding: 0; list-style: none; counter-reset: toc; }
+.doc-toc li { counter-increment: toc; }
+.doc .doc-toc a {
+  display: flex; gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2); margin: 0 calc(-1 * var(--sp-2));
+  border-radius: 8px;
+  color: var(--fg-2); text-decoration: none;
+  transition: background var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
+}
+.doc .doc-toc a::before { content: counter(toc); color: var(--fg-3); font-variant-numeric: tabular-nums; min-width: 1.2em; }
+.doc .doc-toc a:hover { background: var(--row-hover); color: var(--fg); }
+
+/* 절 — 카드가 아니라 제목과 여백으로 나눈다. 위 여백이 아래보다 커서 제목이 뒤 문단에 붙는다 */
+.doc h2 {
+  margin: var(--sp-7) 0 var(--sp-3);
+  font-family: var(--font-display, inherit);
+  font-size: var(--fs-title);
+  font-weight: var(--fw-title, var(--fw-bold));
+  line-height: 1.35;
+  letter-spacing: var(--ls-title, -0.01em);
+  scroll-margin-top: var(--sp-5);
+  text-wrap: balance;
+}
+.doc h3 {
+  margin: var(--sp-6) 0 var(--sp-2);
+  font-family: var(--font-display, inherit);
+  font-size: var(--fs-lead);
+  font-weight: var(--fw-semibold);
+  line-height: 1.4;
+  scroll-margin-top: var(--sp-5);
+}
+.doc section > h2:first-child { margin-top: var(--sp-7); }
+.doc p { margin: 0 0 1em; }
+.doc ul, .doc ol { margin: 0 0 1em; padding-left: 1.4em; }
+.doc li { margin: 0 0 var(--sp-2); }
+.doc li::marker { color: var(--fg-3); }
+.doc strong { font-weight: var(--fw-semibold); }
+.doc a { color: var(--link, var(--accent)); text-decoration: underline; text-underline-offset: 0.18em; text-decoration-thickness: 1px; }
+.doc a:focus-visible, .doc summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.doc hr { border: 0; height: 1px; background: var(--divider); margin: var(--sp-7) 0; }
+
+/* 핵심 숫자 — 절마다 하나까지. 숫자 한 줄 + 그 뜻을 말하는 문장 한 줄(카드로 띄우지 않는다, 문장 속에 크게 넣지 않는다) */
+.doc-stat { margin: 0 0 1em; }
+.doc-stat b { display: block; font-family: var(--font-num, inherit); font-size: var(--fs-display); font-weight: var(--fw-hero, var(--fw-bold)); line-height: 1.2; letter-spacing: var(--ls-hero); font-variant-numeric: tabular-nums; }
+.doc-stat span { display: block; margin-top: var(--sp-1); color: var(--fg-2); font-size: var(--fs-small); }
+
+/* 덧붙임 — 본문 흐름 밖의 한 마디(주의·팁). 왼쪽 색 띠 대신 옅은 바탕 */
+.doc-note {
+  margin: 0 0 1em;
+  padding: var(--sp-4) var(--sp-5);
+  border-radius: var(--r-sm);
+  background: var(--row-hover);
+  color: var(--fg-2);
+  font-size: var(--fs-small);
+  line-height: 1.65;
+}
+.doc-note > :last-child { margin-bottom: 0; }
+
+/* 표 — 제목(caption)은 문장, 숫자는 오른쪽 자리 맞춤, 선은 행 사이에만. 넓으면 표만 가로 스크롤 */
+.doc-table { margin: 0 0 1.5em; overflow-x: auto; }
+.doc table { width: 100%; border-collapse: collapse; font-size: var(--fs-small); line-height: 1.55; font-variant-numeric: tabular-nums; }
+.doc caption { caption-side: top; text-align: left; margin-bottom: var(--sp-2); color: var(--fg-2); font-weight: var(--fw-semibold); }
+.doc th, .doc td { padding: var(--sp-2) var(--sp-3); text-align: left; vertical-align: top; }
+.doc th:first-child, .doc td:first-child { padding-left: 0; }
+.doc th:last-child, .doc td:last-child { padding-right: 0; }
+.doc thead th { color: var(--fg-2); font-weight: var(--fw-semibold); border-bottom: 1px solid var(--fg-3); }
+.doc tbody tr + tr td, .doc tbody tr + tr th { border-top: 1px solid var(--divider); }
+.doc .num { text-align: right; white-space: nowrap; }   /* 숫자 한 칸은 짧아서 nowrap 이 잘림을 만들지 않는다 */
+
+/* 인용·코드·그림 */
+.doc blockquote { margin: 0 0 1em; padding: 0 0 0 var(--sp-4); color: var(--fg-2); }
+.doc blockquote footer { margin-top: var(--sp-2); font-size: var(--fs-small); color: var(--fg-3); }
+.doc code { font-family: var(--font-mono); font-size: 0.9em; background: var(--row-hover); padding: 0.1em 0.35em; border-radius: 6px; }
+.doc pre { margin: 0 0 1em; padding: var(--sp-4); background: var(--row-hover); border-radius: var(--r-sm); overflow-x: auto; font-size: var(--fs-small); line-height: 1.6; }
+.doc pre code { background: none; padding: 0; }
+.doc figure { margin: 0 0 1.5em; }
+.doc figure img, .doc figure svg { max-width: 100%; height: auto; display: block; }
+.doc figcaption { margin-top: var(--sp-2); color: var(--fg-3); font-size: var(--fs-small); }
+
+/* 각주 — 본문 숫자 [1] 은 위첨자 링크, 끝에 목록 */
+.doc sup a { text-decoration: none; font-size: 0.75em; padding: 0 0.1em; }
+.doc-footnotes { margin-top: var(--sp-7); padding-top: var(--sp-4); border-top: 1px solid var(--divider); color: var(--fg-2); font-size: var(--fs-small); line-height: 1.6; }
+
+/* 주석 받을 문서 — 단위 머리의 보이는 번호표(id 와 같은 글자). 손님에게 드리는 문서엔 쓰지 않는다 */
+.doc-tag { display: inline-block; margin-right: var(--sp-2); color: var(--fg-3); font-size: var(--fs-caption); font-weight: var(--fw-medium); font-variant-numeric: tabular-nums; vertical-align: 0.15em; }
+
+/* 화면에서만 — 인쇄 버튼·테마 버튼 */
+.doc-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: var(--sp-7); }
+.doc-btn {
+  font: inherit; font-size: var(--fs-small); font-weight: var(--fw-medium);
+  min-height: 40px; padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--btn-r, var(--r-pill)); border: 1px solid var(--divider);
+  background: var(--doc-paper); color: var(--fg); cursor: pointer;
+  transition: background var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out);
+}
+.doc-btn:hover { background: var(--row-hover); }
+.doc-btn:active { transform: scale(0.97); }
+.doc-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .doc-toc a, .doc-btn { transition: none; }
+}
+
+/* 폰 — 값은 base.css 가 줄인다. 가로 여백 16 + safe-area, 버튼은 손가락 크기 */
+@media (max-width: 599px) {
+  :root { --doc-lh: 1.7; }
+  .doc-article { padding: calc(var(--sp-7) + var(--safe-top)) var(--sp-4) calc(var(--sp-7) + var(--safe-bottom)); }
+  .doc-summary { padding: var(--sp-4); }
+  .doc-btn { min-height: var(--touch); }
+  .doc .doc-toc a { min-height: var(--touch); align-items: center; }
+}
+
+/* 인쇄 — 다크로 보고 있어도 라이트로, 레일·버튼은 빼고, 표·덧붙임은 쪽에서 갈라지지 않게, 바깥 링크는 주소를 덧붙인다 */
+@page { size: A4; margin: 18mm 16mm; }
+@media print {
+  :root, :root[data-theme] {
+    color-scheme: light;   /* !important — 테마가 이 뒤에 붙어도 인쇄는 라이트 */
+    --doc-paper: #ffffff !important; --fg: #111111 !important; --fg-2: #333333 !important; --fg-3: #5c5c5c !important;
+    --accent-soft: #f0f0f0 !important; --summary-bg: #f0f0f0 !important; --row-hover: #f3f3f3 !important; --divider: #d0d0d0 !important;
+  }
+  html { font-size: 10.5pt; }
+  .doc { background: #ffffff; }
+  .doc-article { display: block; max-width: none; padding: 0; }
+  .doc-toc { margin-bottom: var(--sp-6); }
+  .doc .doc-toc a { padding: 0; margin: 0; min-height: 0; }
+  .doc-toc > * { position: static; }
+  .doc-actions, .doc-noprint { display: none !important; }
+  .doc a { color: inherit; }
+  .doc a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.85em; color: var(--fg-3); overflow-wrap: anywhere; }
+  .doc h2, .doc h3 { break-after: avoid; }
+  .doc table, .doc figure, .doc-note, .doc-summary, .doc pre, .doc blockquote { break-inside: avoid; }
+  .doc p, .doc li { orphans: 2; widows: 2; }
+}
+
+
+/* ───────────── 테마 notion.css ───────────── */
+/* themes/notion.css — Notion. 흰 종이에 따뜻한 먹색 글자, 붙은 연회색 사이드바, 거의 안 보이는 선, 작은 모서리, 큰 여백. 문서·정리 화면·가벼운 운영 화면.
+   출처: notion.com 번들 CSS(본문 #37352f·보조 #787774·파랑 #2383e2/#0075de·선 #00000014·글꼴 스택) · matthiasfrank.de/en/notion-colors(하이라이트 색 라이트·다크 — 제3자 정리표).
+   Windows 에선 ui-sans-serif·Segoe UI 가 한글을 맑은 고딕으로 이어 붙여 Pretendard 를 앞에 둔다. 근사: 사이드바 #f7f7f5/#202020 · 다크 글자 · 반경 4~8 · 메뉴 그림자 · 행 높이. 보조 글자는 4.5:1 을 위해 #787774 → #6f6e69, 흐린 글자 #91918e(설계 판단). 강조색은 먹색 — Notion 브랜드는 흑백이고 파랑은 기능색이라, 주요 버튼·체크·포커스도 먹색(다크는 밝은 회색). 나머지는 회색(10-25 사용자 결정).
+   용도별: 문서 = Notion 페이지(큰 굵은 제목, 회색 콜아웃, 칸마다 선 있는 표) · 랜딩 = notion.com(가운데 굵은 검정 제목, 흰 상자 + 옅은 선, 따뜻한 회색 띠) · 표 = 데이터베이스 표(세로선, 칠 없는 머리) · 폼 = Notion Forms(보통 굵기 제목, 작은 체크 행, 글 아래 왼쪽 버튼).
+   다크는 :root[data-theme="dark"] 한 벌만 적는다 — build.mjs 가 시스템 다크 블록을 같은 값으로 만든다. 변수 목록은 README "테마". */
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Pretendard Variable", Pretendard, ui-sans-serif, "Segoe UI", Helvetica, Arial, sans-serif;
+  --bg-base: #ffffff;
+  --fg: #37352f; --fg-2: #6f6e69; --fg-3: #91918e;
+  --accent: #37352f; --accent-fg: #ffffff; --accent-soft: rgba(55, 53, 47, 0.08);   /* 옅은 칠도 파랑이 아니라 먹색 */
+  --link: #6f6e69;          /* "더 보기" 같은 글자 버튼은 회색, 본문 링크는 먹색 + 옅은 밑줄 */
+  --ink-sel: #37352f;
+  --ok: #548164; --warn: #b46a24; --danger: #c4554d;
+  --row-hover: rgba(55, 53, 47, 0.06); --divider: rgba(55, 53, 47, 0.09); --scrim: rgba(15, 15, 15, 0.4);
+  --paper: #ffffff;
+  --page-bg: #ffffff; --blobs: 0;
+  --bg-blob-1: transparent; --bg-blob-2: transparent; --bg-blob-3: transparent;
+  --glass-blur: 0px; --glass-saturate: 100%; --glass-highlight: transparent;
+  --card-bg: #ffffff; --card-border: transparent;
+  --card-shadow: rgba(15, 15, 15, 0.1) 0 0 0 1px, rgba(15, 15, 15, 0.1) 0 2px 4px;
+  --glass-bg: #ffffff; --glass-border: transparent;
+  --glass-shadow: rgba(15, 15, 15, 0.05) 0 0 0 1px, rgba(15, 15, 15, 0.1) 0 3px 6px, rgba(15, 15, 15, 0.2) 0 9px 24px;
+  --sb-glass-bg: #f7f7f5; --sb-glass-border: transparent; --sb-glass-shadow: none;
+  --r-sm: 4px; --r-md: 6px; --r-lg: 8px;
+  --card-r: 8px; --card-pad: 20px; --btn-r: 6px; --field-r: 6px; --float-r: 8px;
+  --sb-gap: 0px; --sb-radius: 0px; --tab-r: 0px; --sb-w: 240px;
+  --sel-bg: rgba(55, 53, 47, 0.08); --sel-fg: #37352f;
+  --summary-bg: #f1f1ef;          /* gray 콜아웃 */
+  --choice-bg: #ffffff; --choice-line: rgba(55, 53, 47, 0.16); --choice-hover: rgba(55, 53, 47, 0.04);
+  --fm-line: rgba(55, 53, 47, 0.16);
+  --fs-hero: 2.5rem;
+  --fw-hero: 700; --fw-display: 700; --fw-title: 600;
+  --ls-hero: -0.01em; --ls-display: -0.01em; --ls-title: -0.005em;
+  --ld-band: #f6f5f4; --ld-band-fg: #37352f;
+  --no-gray: #f1f1ef; --no-blue: #e9f3f7; --no-yellow: #faf3dd;
+}
+:root[data-theme="dark"] {
+  --bg-base: #191919;
+  --fg: #d4d4d4; --fg-2: #9b9b9b; --fg-3: #7f7f7f;
+  --accent: #d4d4d4; --accent-fg: #191919; --accent-soft: rgba(255, 255, 255, 0.08);
+  --link: #9b9b9b;
+  --ink-sel: #d4d4d4;
+  --ok: #4f9768; --warn: #cb7b37; --danger: #be524b;
+  --row-hover: rgba(255, 255, 255, 0.055); --divider: rgba(255, 255, 255, 0.094); --scrim: rgba(0, 0, 0, 0.6);
+  --paper: #191919; --page-bg: #191919;
+  --card-bg: #202020; --card-shadow: rgba(255, 255, 255, 0.094) 0 0 0 1px;
+  --glass-bg: #252525; --glass-shadow: rgba(255, 255, 255, 0.094) 0 0 0 1px, rgba(0, 0, 0, 0.4) 0 9px 24px;
+  --sb-glass-bg: #202020;
+  --sel-bg: rgba(255, 255, 255, 0.055); --sel-fg: #d4d4d4;
+  --summary-bg: #252525;
+  --choice-bg: #191919; --choice-line: rgba(255, 255, 255, 0.13); --choice-hover: rgba(255, 255, 255, 0.04);
+  --fm-line: rgba(255, 255, 255, 0.13);
+  --ld-band: #202020; --ld-band-fg: #d4d4d4;
+  --no-gray: #252525; --no-blue: #1f282d; --no-yellow: #372e20;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-base: #191919;
+    --fg: #d4d4d4; --fg-2: #9b9b9b; --fg-3: #7f7f7f;
+    --accent: #d4d4d4; --accent-fg: #191919; --accent-soft: rgba(255, 255, 255, 0.08);
+    --link: #9b9b9b;
+    --ink-sel: #d4d4d4;
+    --ok: #4f9768; --warn: #cb7b37; --danger: #be524b;
+    --row-hover: rgba(255, 255, 255, 0.055); --divider: rgba(255, 255, 255, 0.094); --scrim: rgba(0, 0, 0, 0.6);
+    --paper: #191919; --page-bg: #191919;
+    --card-bg: #202020; --card-shadow: rgba(255, 255, 255, 0.094) 0 0 0 1px;
+    --glass-bg: #252525; --glass-shadow: rgba(255, 255, 255, 0.094) 0 0 0 1px, rgba(0, 0, 0, 0.4) 0 9px 24px;
+    --sb-glass-bg: #202020;
+    --sel-bg: rgba(255, 255, 255, 0.055); --sel-fg: #d4d4d4;
+    --summary-bg: #252525;
+    --choice-bg: #191919; --choice-line: rgba(255, 255, 255, 0.13); --choice-hover: rgba(255, 255, 255, 0.04);
+    --fm-line: rgba(255, 255, 255, 0.13);
+    --ld-band: #202020; --ld-band-fg: #d4d4d4;
+    --no-gray: #252525; --no-blue: #1f282d; --no-yellow: #372e20;
+  }
+}
+
+/* 운영 화면 — 사이드바 글자는 작고 흐리게 */
+.gl-nav-item { font-weight: 500; }
+.gl-float { box-shadow: var(--card-shadow); }
+
+/* 문서 — Notion 페이지: 본문 16px·줄 간격 1.5, 큰 제목, 장식 없는 소제목, 콜아웃, 칸마다 선 */
+.doc { --doc-lh: 1.6; font-size: 1rem; }
+.doc h1 { font-size: 2.5rem; line-height: 1.2; }
+.doc h2 { font-size: 1.5rem; margin-top: 2em; }
+.doc-summary { border-radius: 4px; padding: 16px 16px 16px 12px; }
+.doc-note { border-radius: 4px; background: var(--no-yellow); color: var(--fg); }
+.doc table th, .doc table td { border: 1px solid var(--divider); }
+.doc table th { background: transparent; color: var(--fg-2); font-weight: 500; }
+.doc-toc a { color: var(--fg-2); text-decoration: underline; text-decoration-color: var(--divider); }
+
+/* 랜딩 — notion.com: 굵은 제목, 흰 상자 + 옅은 선, 따뜻한 회색 띠 */
+.ld-hero h1 { font-weight: 700; letter-spacing: -0.02em; }
+.ld-compare > div, .ld-price { background: var(--card-bg); box-shadow: var(--card-shadow); border-radius: 12px; }
+.ld-compare > div.after { box-shadow: inset 0 0 0 2px var(--fg); }
+.ld-mock { border-radius: 12px; background: var(--paper); box-shadow: var(--glass-shadow); }
+.ld-mock-screen { border-radius: 6px; }
+.ld-steps li::before { border-radius: 4px; }
+
+/* 표 — 데이터베이스 표: 세로선, 칠 없는 머리, 보통 굵기 회색 머리 글자, 낮은 행 */
+.tb-table th + th, .tb-table td + td { border-left: 1px solid var(--tb-line); }
+.tb-table thead th { background: var(--tb-paper); font-weight: 500; }
+.tb-chip { border-radius: 4px; }
+@media (min-width: 600px) { .tb { --tb-row-h: 36px; } }
+
+/* 폼 — Notion Forms: 얇은 선 상자, 고르면 먹색 테(아래 공통 규칙) */
+
+/* 강조색은 주요 버튼·체크박스·포커스 표시에만 — 아이콘·진행 막대·고른 선택지·눌린 필터·현재 행은 먹색·회색(Notion 은 거의 흑백) */
+.gl-nav-avatar { color: var(--fg-2); }
+.gl-nav-bar > span, .progress > span, .fm-bar > span { background: var(--fg-2); }
+.gl-badge.accent { background: var(--fg-2); color: var(--paper); }
+.tb-status.accent::before { background: var(--fg-2); }
+.flow-box { color: var(--fg); }
+.doc a { color: var(--fg); text-decoration-color: var(--fg-3); }
+.fm-choice:has(input:checked) { border-color: var(--ink-sel); box-shadow: inset 0 0 0 1px var(--ink-sel); background: var(--accent-soft); }
+.fm-done-mark svg { stroke: var(--fg); }
+.ld-bubble.me { background: var(--fg); color: var(--paper); }
+.tb { --tb-sel: var(--accent-soft); }
+.tb-chip[aria-pressed="true"] { border-color: var(--ink-sel); background: var(--accent-soft); color: var(--fg); }
+.tb-table tbody tr.current { background: color-mix(in srgb, var(--fg) 9%, transparent); }
+.tb-bulk { box-shadow: inset 0 0 0 1px var(--tb-line); }
+
+/* 폼 — 토스식 하단 고정 꽉 찬 버튼·큰 굵은 질문·큰 선택지 칸·큰 체크 원을 걷어 낸다(10-25 사용자 결정) */
+.fm { --fm-q: 1.375rem; }
+.fm-q { font-weight: 500; letter-spacing: var(--ls-title); }
+.fm-app { min-height: 0; }
+.fm-screen { flex: none; padding-bottom: 0; }
+.fm-cta { position: static; max-width: var(--fm-col); margin: 0 auto; padding: var(--sp-6) var(--sp-5) calc(var(--sp-7) + var(--safe-bottom)); background: none; }
+.fm-cta-inner { max-width: none; margin: 0; justify-content: flex-start; }
+.fm-btn { flex: none; min-height: 44px; padding: 0 var(--sp-5); font-size: 1rem; font-weight: var(--fw-medium); }
+.fm-done-mark { width: 32px; height: 32px; margin: var(--sp-6) 0 var(--sp-3); background: none; border-radius: 0; place-items: start; }
+.fm-done-mark svg { width: 28px; height: 28px; stroke-width: 2; }
+@media (max-width: 599px) { .fm-cta { padding-left: var(--sp-4); padding-right: var(--sp-4); } }
+
+/* 선택지 — 테두리 상자가 아니라 작은 체크 행, 고르면 옅은 먹색 칠 */
+.fm-choices { gap: 2px; }
+.fm-choice { min-height: 44px; padding: 6px 8px; border: 0; border-radius: 4px; background: transparent; }
+.fm-choice:has(input:checked) { border: 0; box-shadow: none; background: var(--accent-soft); }
+.fm-mark { width: 18px; height: 18px; border-width: 1.5px; }
+.fm-choice input[type="checkbox"] ~ .fm-mark { border-radius: 3px; }
+.fm-mark::after { width: 8px; height: 5px; }
+.fm-input { min-height: 44px; }
+/* 랜딩 — notion.com: 가운데 정렬 굵은 제목 */
+.ld-hero { text-align: center; }
+.ld-hero .ld-wrap { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: var(--sp-7); }
+.ld-hero p.ld-lead { margin-left: auto; margin-right: auto; }
+.ld-hero-act { justify-content: center; }
+.ld-cta { font-weight: 500; }

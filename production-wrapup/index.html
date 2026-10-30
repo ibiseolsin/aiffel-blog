@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>초록 체크가 놓친 일곱 장면 — AI 서비스 인 프로덕션 9일 정리</title>
+<meta name="description" content="아이펠 AI 서비스 인 프로덕션 모듈(노드 63~71)을 '성공 표시가 놓친 실패'와 그 실패를 막은 장치로 다시 정리했어요.">
+<link rel="stylesheet" href="../tokens.css">
+<style>
+  .doc svg text { fill: var(--fg); font-family: var(--font-sans); }
+  .doc svg .sub { fill: var(--fg-2); }
+  .ladder-svg .g1 { fill: currentColor; fill-opacity: .07; }
+  .ladder-svg .g2 { fill: currentColor; fill-opacity: .15; }
+  .ladder-svg .g3 { fill: currentColor; fill-opacity: .26; }
+  .probe .fail { fill: var(--danger); fill-opacity: .16; stroke: var(--danger); }
+  .probe .ok { fill: var(--ok); fill-opacity: .14; stroke: var(--ok); }
+  .probe .old { fill: currentColor; fill-opacity: .07; stroke: var(--divider); }
+  .probe .axis { stroke: var(--fg-3); }
+  .probe .mark { fill: var(--fg); }
+  .doc figure svg { color: var(--fg); width: 100%; }
+  .ladder-svg { max-width: 520px; }
+
+  .scene-picker { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 0 0 1em; padding: 0; list-style: none; }
+  .scene-picker button { font: inherit; font-size: var(--fs-small); padding: 6px 14px; min-height: 44px; border: 1px solid var(--divider); border-radius: 999px; background: var(--paper, transparent); color: var(--fg); cursor: pointer; }
+  .scene-picker button[aria-pressed="true"] { background: var(--fg); color: var(--paper, #fff); border-color: var(--fg); }
+  .scene-picker button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  ol.road { padding-left: 1.6em; }
+  ol.road li { padding: 6px 10px; margin: 0 0 6px; border-radius: 6px; border: 1px solid transparent; }
+  ol.road li .catch { display: block; color: var(--fg-2); font-size: var(--fs-small); }
+  ol.road li.hit { border-color: var(--fg); background: var(--row-hover); }
+  ol.road li.hit .catch { color: var(--fg); }
+  .road-status { min-height: 1.75em; color: var(--fg-2); font-size: var(--fs-small); }
+  @media (prefers-reduced-motion: no-preference) { ol.road li { transition: background .15s, border-color .15s; } }
+</style>
+</head>
+<body class="doc">
+<article class="doc-article">
+
+  <header class="doc-head">
+    <h1>초록 체크가 놓친 일곱 장면 — 배포 아홉 날을 다시 읽기</h1>
+    <p class="doc-meta">Mini WRAP UP · 아이펠 「AI 서비스 인 프로덕션」 노드 63~71 · 2026년 10월 30일 · 김지훈</p>
+  </header>
+
+  <section class="doc-summary" aria-label="요약">
+    <p><strong>아홉 날 동안 배운 장치는 모두 「성공 표시가 놓친 실패」를 하나씩 막으려고 생겼어요.</strong> CI, staging, Dockerfile, 한 번 빌드, 블루그린, 스타트업 프로브가 다 그래요.</p>
+    <p>가장 극적인 장면은 마지막 날이었어요. 배포 명령은 성공했는데 30초 동안 모든 요청이 실패했고, <code>/health</code> 프로브 설정 한 줄로 실패가 0건이 됐어요.</p>
+    <p>이 글은 그 일곱 장면을 표로 모으고, 각 장면을 잡아낸 장치가 배포 길의 어디에 있는지 눌러 볼 수 있게 정리했어요.</p>
+  </section>
+
+  <nav class="doc-toc" aria-label="목차">
+    <div>
+      <p class="doc-toc-title">목차</p>
+      <ol>
+        <li><a href="#ladder">아홉 날을 계단 하나로</a></li>
+        <li><a href="#scenes">초록 체크가 놓친 일곱 장면</a></li>
+        <li><a href="#road">장치를 배포 길 위에 놓으면</a></li>
+        <li><a href="#probe">한 장면 크게 보기: 30초</a></li>
+        <li><a href="#confusing">정리하며 헷갈렸던 것</a></li>
+        <li><a href="#left">아직 남은 것</a></li>
+      </ol>
+    </div>
+  </nav>
+
+  <section id="ladder">
+    <h2>아홉 날을 계단 하나로</h2>
+    <p>이 모듈은 「AI 친구 에이전트」 하나를 끝까지 들고 갔어요. 캐릭터가 대화를 기억하고, 날씨를 찾아 답하고, 약속을 저장해 먼저 말을 거는 서비스예요. 날마다 새 기술이 나왔지만, 실은 전날 남은 문제 하나를 받아서 푸는 계단이었어요.</p>
+    <figure>
+      <svg class="ladder-svg" viewBox="0 0 410 284" role="img" aria-labelledby="ladder-t">
+        <title id="ladder-t">1일 설계부터 9일 무중단 자동화까지, 날마다 한 칸씩 오른쪽으로 올라가는 계단 그림</title>
+        <g font-size="12.5">
+          <rect class="g1" x="10"  y="6"   width="232" height="26" rx="4"/><text x="20"  y="24">1 설계 — 무엇을, 누구에게</text>
+          <rect class="g1" x="30"  y="36"  width="232" height="26" rx="4"/><text x="40"  y="54">2 첫 배포 — 주소가 생긴다</text>
+          <rect class="g1" x="50"  y="66"  width="232" height="26" rx="4"/><text x="60"  y="84">3 운영 — 계속 잘 도나</text>
+          <rect class="g2" x="70"  y="96"  width="232" height="26" rx="4"/><text x="80"  y="114">4 자동 배포 — 머지하면 나간다</text>
+          <rect class="g2" x="90"  y="126" width="232" height="26" rx="4"/><text x="100" y="144">5 CI·staging — 나가기 전에 막는다</text>
+          <rect class="g2" x="110" y="156" width="232" height="26" rx="4"/><text x="120" y="174">6 Dockerfile — 환경을 적는다</text>
+          <rect class="g2" x="130" y="186" width="232" height="26" rx="4"/><text x="140" y="204">7 한 번 빌드 — 같은 이미지를 보낸다</text>
+          <rect class="g3" x="150" y="216" width="232" height="26" rx="4"/><text x="160" y="234">8 블루그린 — 끊김 없이 바꾼다</text>
+          <rect class="g3" x="170" y="246" width="232" height="26" rx="4"/><text x="180" y="264">9 무중단 자동화 — 증명하고 바꾼다</text>
+        </g>
+      </svg>
+      <figcaption>옅은 칸(1~3일)은 「일단 올린다」, 중간 칸(4~7일)은 「사람 손 없이 같게 올린다」, 짙은 칸(8~9일)은 「사용자가 모르게 바꾼다」예요.</figcaption>
+    </figure>
+    <p>예를 들어 3일째 마무리에는 「배포할 때마다 사람이 명령을 실행해 잘못된 설정이 그대로 배포될 수 있다」는 한계가 적혀 있어요<sup><a href="#fn1" id="r1">1</a></sup>. 그 문장이 4일째 GitHub Actions 자동 배포의 출발점이 돼요. 이렇게 한 날의 끝 문장이 다음 날의 첫 문제가 되는 구조라서, 순서를 바꿔 배우면 각 장치가 왜 필요한지 잘 안 보여요.</p>
+  </section>
+
+  <section id="scenes">
+    <h2>초록 체크가 놓친 일곱 장면</h2>
+    <p>택배 앱에 「배송 완료」가 떴는데 문 앞에 상자가 없는 경우가 있어요. 문자는 택배 기사가 정한 완료 조건을 통과했다는 뜻이지, 내가 물건을 받았다는 뜻은 아니에요. 배포의 초록 체크도 똑같았어요.</p>
+    <p>재미있는 건 4일째 사고 두 개의 대비예요. 환경변수 이름을 바꿔 앱이 시작조차 못 한 사고는 Actions가 빨갛게 실패했지만, Cloud Run이 이전 리비전에 트래픽 100%를 남겨 둬서 사용자는 아무 영향이 없었어요. 정말 위험했던 건 초록으로 끝난 쪽이었어요.</p>
+    <div class="doc-table">
+      <table>
+        <caption>성공 표시와 실제가 어긋난 장면은 날마다 하나씩 있었어요</caption>
+        <thead><tr><th scope="col">날</th><th scope="col">초록으로 보인 것</th><th scope="col">실제로 일어난 일</th><th scope="col">막은 장치</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">3일</th><td>답이 화면에 나옴</td><td>타임아웃에 「내일 서울은 맑다가」에서 잘려 비 소식이 사라짐</td><td>타임아웃 설정, 스트림 종료 확인</td></tr>
+          <tr><th scope="row">4일</th><td>Actions 초록</td><td>「내일 아침 8시」 약속이 17:00으로 저장됨(서버는 UTC)</td><td>CI 테스트(UTC 러너)</td></tr>
+          <tr><th scope="row">5일</th><td>상태 체크 통과</td><td>CSS 한 줄로 보내기 버튼이 사라짐</td><td>staging에서 눈으로 확인</td></tr>
+          <tr><th scope="row">6일</th><td>CI 통과, 배포 성공</td><td>서버 이미지에 tesseract가 없어 사진 요청이 500</td><td>Dockerfile</td></tr>
+          <tr><th scope="row">7일</th><td>staging 확인 끝</td><td>production은 따로 빌드한 다른 이미지</td><td>한 번 빌드, 다이제스트 승격</td></tr>
+          <tr><th scope="row">8일</th><td>전환 중 요청 실패 0건</td><td>대화와 약속이 사라짐(메모리에만 있었음)</td><td>상태를 DB로(Supabase)</td></tr>
+          <tr><th scope="row">9일</th><td>배포 명령 성공</td><td>새 버전이 30초 동안 모든 요청에 503</td><td><code>/health</code> 스타트업 프로브</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>8일째 교재 문장이 이 표를 한 줄로 요약해요. 요청은 끊기지 않고 옮겨 갔지만 「사용자 입장에서는 친구가 방금 나눈 대화를 잊어버린 것이라 무중단 배포라고 하기 어렵다」<sup><a href="#fn2" id="r2">2</a></sup>. 요청이 안 끊기는 것과 하던 일이 이어지는 것은 다른 문제였어요.</p>
+  </section>
+
+  <section id="road">
+    <h2>장치를 배포 길 위에 놓으면</h2>
+    <p>9일째가 끝나면 PR 하나가 production에 닿기까지 아래 일곱 칸을 지나요. 위 표의 장면을 고르면 그 실패를 잡는 칸이 표시돼요.</p>
+    <ul class="scene-picker doc-noprint" aria-label="장면 고르기">
+      <li><button type="button" data-hit="7" aria-pressed="false">3일 잘린 답</button></li>
+      <li><button type="button" data-hit="1" aria-pressed="false">4일 17:00 약속</button></li>
+      <li><button type="button" data-hit="4" aria-pressed="false">5일 사라진 버튼</button></li>
+      <li><button type="button" data-hit="2" aria-pressed="false">6일 OCR 500</button></li>
+      <li><button type="button" data-hit="3 5" aria-pressed="false">7일 다른 이미지</button></li>
+      <li><button type="button" data-hit="7" aria-pressed="false">8일 잊힌 대화</button></li>
+      <li><button type="button" data-hit="6" aria-pressed="false">9일 30초 503</button></li>
+    </ul>
+    <p class="road-status doc-noprint" aria-live="polite"></p>
+    <ol class="road">
+      <li data-step="1">PR을 올리면 CI가 테스트를 돌리고, 통과해야 머지돼요(5일). <span class="catch">잡는 장면: 4일 17:00 약속 — 러너가 UTC라 서버와 같은 조건에서 실패해요.</span></li>
+      <li data-step="2">Dockerfile로 이미지를 만들어요. 베이스 이미지, 시스템 패키지, 실행 사용자까지 파일에 적혀 있어요(6일). <span class="catch">잡는 장면: 6일 OCR 500 — tesseract 설치 줄이 이미지에 들어가요.</span></li>
+      <li data-step="3">이미지는 Actions에서 한 번만 만들고 커밋 SHA로 태그를 붙여요(7일). <span class="catch">잡는 장면: 7일 다른 이미지 — 어느 커밋인지 바로 찾을 수 있어요.</span></li>
+      <li data-step="4">staging에 배포하고 사람이 화면을 직접 열어 봐요(5일). <span class="catch">잡는 장면: 5일 사라진 버튼 — 테스트는 화면 모양을 보지 않아요.</span></li>
+      <li data-step="5">승인을 받으면 staging에서 확인한 다이제스트 그대로 production에 트래픽 0%로 올려요(7·9일). <span class="catch">잡는 장면: 7일 다른 이미지 — 다시 빌드하지 않고 승격해요.</span></li>
+      <li data-step="6"><code>/health</code> 프로브와 스모크 테스트를 통과하면 100%로 옮기고, 이상하면 버튼 하나로 이전 리비전에 되돌려요(9일). <span class="catch">잡는 장면: 9일 30초 503 — 준비가 끝난 뒤에만 트래픽이 가요.</span></li>
+      <li data-step="7">운영 중에는 상태를 DB에 두고, 타임아웃·LLM 월 한도·로그로 지켜봐요(3·8일). <span class="catch">잡는 장면: 3일 잘린 답, 8일 잊힌 대화.</span></li>
+    </ol>
+    <div class="doc-note"><p>칸마다 사람이 하는 일이 하나씩 남아 있어요. staging 화면 보기, production 승인 누르기, 롤백 판단하기예요. 교재는 승인을 에이전트에게 맡기지 말고 직접 누르라고 해요.</p></div>
+  </section>
+
+  <section id="probe">
+    <h2>한 장면 크게 보기: 30초</h2>
+    <p>9일째 실험은 시작이 느린 AI 서비스를 흉내 냈어요. 앱이 포트는 바로 열지만 모델 설정이나 문서 색인을 불러오느라 30초 동안 모든 요청에 503을 돌려주게 만든 거예요.</p>
+    <figure>
+      <svg class="probe" viewBox="0 0 420 178" role="img" aria-labelledby="probe-t">
+        <title id="probe-t">기본 프로브는 배포 직후 트래픽을 옮겨 30초 동안 실패하고, /health 프로브는 30초를 기다린 뒤 옮겨 실패가 0건이다</title>
+        <g font-size="12">
+          <text x="0" y="30">기본 프로브</text>
+          <text class="sub" x="0" y="46" font-size="10.5">포트만 확인</text>
+          <rect class="fail" x="90" y="20" width="160" height="34" rx="4"/><text x="100" y="42">새 버전 503 · 약 30초</text>
+          <rect class="ok" x="250" y="20" width="160" height="34" rx="4"/><text x="260" y="42">정상</text>
+          <path class="mark" d="M90 14 l-5 -8 h10 z"/>
+
+          <text x="0" y="100"><tspan>/health</tspan></text>
+          <text class="sub" x="0" y="116" font-size="10.5">준비까지 확인</text>
+          <rect class="old" x="90" y="90" width="160" height="34" rx="4"/><text x="100" y="112">이전 버전이 계속 응답</text>
+          <rect class="ok" x="250" y="90" width="160" height="34" rx="4"/><text x="260" y="112">정상 · 실패 0건</text>
+          <path class="mark" d="M250 84 l-5 -8 h10 z"/>
+
+          <line class="axis" x1="90" y1="140" x2="410" y2="140"/>
+          <line class="axis" x1="90" y1="136" x2="90" y2="144"/><text class="sub" x="90" y="158" text-anchor="middle" font-size="10.5">0초</text>
+          <line class="axis" x1="250" y1="136" x2="250" y2="144"/><text class="sub" x="250" y="158" text-anchor="middle" font-size="10.5">30초</text>
+          <line class="axis" x1="410" y1="136" x2="410" y2="144"/><text class="sub" x="404" y="158" text-anchor="end" font-size="10.5">60초</text>
+          <text class="sub" x="250" y="174" text-anchor="middle" font-size="10.5">▼ = 트래픽이 새 버전으로 옮겨 가는 순간</text>
+        </g>
+      </svg>
+      <figcaption>같은 30초 지연을 두 프로브로 배포했을 때예요. 교재 실습 서술을 그림으로 옮겼어요<sup><a href="#fn3" id="r3">3</a></sup>.</figcaption>
+    </figure>
+    <p>기본 프로브는 포트가 열렸는지만 봐요. 그래서 Cloud Run은 준비됐다고 판단해 트래픽을 옮겼고, 그 뒤 30초 동안 보낸 메시지는 모두 실패했어요. 그런데 배포 명령은 성공으로 끝났어요. 교재 문장이 이 글의 제목이 됐어요. 「배포가 성공했다는 것은 Cloud Run이 정한 준비 조건을 통과했다는 뜻일 뿐이고, 사용자가 오류를 보지 않았다는 뜻은 아닙니다.」</p>
+    <p class="doc-stat"><b>30초 → 0건</b><span><code>--startup-probe=httpGet.path=/health,periodSeconds=5,failureThreshold=12</code> 한 줄의 차이예요</span></p>
+    <p>대가도 있어요. 배포가 30초쯤 더 걸리고, 5초 간격 12번(최대 60초) 안에 준비되지 않으면 새 리비전은 실패로 끝나요. 그래도 그때는 트래픽이 옮겨 가지 않으니 사용자는 이전 버전을 계속 써요. 실패가 사용자 쪽이 아니라 배포 쪽에 남는 거예요.</p>
+  </section>
+
+  <section id="confusing">
+    <h2>정리하며 헷갈렸던 것</h2>
+    <h3>태그와 다이제스트는 뭐가 다른가요?</h3>
+    <p>태그(<code>:latest</code>, 커밋 SHA)는 이름표라 다른 이미지에 옮겨 붙일 수 있어요. 다이제스트(<code>sha256:…</code>)는 이미지 내용으로 정해지는 값이라 바뀌지 않아요. 그래서 「staging에서 본 것과 같은 이미지인가」는 다이제스트로 확인해요. 앞 12자리만 맞춰 봐도 충분하다고 해요.</p>
+    <h3>롤백하면 이미지를 다시 만드나요?</h3>
+    <p>아니에요. Cloud Run 롤백은 트래픽을 이전 리비전으로 되돌리는 것뿐이라 몇 초 안에 끝나요. 대신 스타트업 프로브를 다시 돌리지 않고 DB 같은 바깥 의존성도 확인하지 않아요. 새 버전이 테이블 구조를 바꿨다면 이전 리비전이 그 테이블을 못 읽어서 롤백이 깨질 수 있어요.</p>
+    <h3>고쳐서 배포했는데 왜 옛 버전이 나오죠?</h3>
+    <p>트래픽 고정 때문이에요. 카나리나 롤백으로 트래픽을 특정 리비전에 묶어 두면, 그 뒤 배포는 새 리비전만 만들고 트래픽을 0%에 둬요. 워크플로는 초록인데 사용자는 새 버전을 못 받아요. 일곱 장면과 같은 종류의 함정이고, <code>--to-latest</code>로 풀어요.</p>
+    <h3><code>--set-env-vars</code>와 <code>--update-env-vars</code>는 왜 구분하나요?</h3>
+    <p><code>--set-env-vars</code>는 적은 것 말고 나머지 환경변수를 지워요. OCR 스위치 하나 켜려다 <code>ENV=production</code>까지 날리면 개발용 패널이 사용자에게 보여요. 교재가 6·7·9일에 거듭 경고한 플래그예요.</p>
+  </section>
+
+  <section id="left">
+    <h2>아직 남은 것</h2>
+    <p>교재도 9일째 끝에서 남은 문제를 솔직하게 적어 둬요. 다음에 공부할 목록으로 옮겨 둬요.</p>
+    <ol>
+      <li><strong>권한이 환경별로 나뉘지 않았어요.</strong> staging과 production이 같은 런타임 서비스 계정을 써서 staging도 production의 secret key를 읽을 수 있어요. 데이터는 나눴는데 권한은 못 나눴어요.</li>
+      <li><strong>스모크 테스트는 <code>/health</code>와 <code>/version</code>만 봐요.</strong> 캐릭터 답이 이상해졌는지는 몰라요. 실제 LLM 답 품질은 테스트로 잡기 어렵다는 5일째 한계가 그대로예요.</li>
+      <li><strong>테이블 구조를 바꾸는 배포는 시험하지 않았어요.</strong> 8일째 나온 확장-축소 패턴(새 열 추가 → 두 열을 함께 쓰는 버전 → 옛 열 삭제)을 실제로 해 봐야 해요.</li>
+    </ol>
+    <p>9일째 마무리 문장이 이 모듈을 가장 잘 요약해요. 아침에는 초록 체크만 봤다면, 이제는 준비 조건, 트래픽 설정, 측정할 요청이라는 이름으로 부족한 점을 짚을 수 있어요. 「배송 완료」 문자를 받으면 이제 문 앞부터 확인하게 될 것 같아요.</p>
+  </section>
+
+  <section class="doc-footnotes" aria-label="각주">
+    <ol>
+      <li id="fn1">아이펠 「AI 서비스 인 프로덕션」 3강 「Cloud Run에서 AI 서비스 운영하기」 마무리. 이 글의 장면과 인용은 모두 노드 63~71 교재에서 가져왔어요. <a href="#r1">본문으로</a></li>
+      <li id="fn2">8강 「로드밸런서로 무중단 배포 구성하기」. Nginx 앞에 blue·green 컨테이너를 두고 전환한 실험이에요. <a href="#r2">본문으로</a></li>
+      <li id="fn3">9강 「Cloud Run으로 무중단 배포하기」의 <code>SLOW_START_SECONDS=30</code> 실험. 막대 길이는 교재가 적은 시간(약 30초, 최대 60초)을 옮긴 것이고, 제가 따로 잰 값은 아니에요. <a href="#r3">본문으로</a></li>
+    </ol>
+  </section>
+
+  <div class="doc-actions">
+    <button class="doc-btn" type="button" id="theme">다크로 보기</button>
+  </div>
+</article>
+<script>
+  const root = document.documentElement, btn = document.getElementById('theme');
+  const q = new URLSearchParams(location.search).get('theme');
+  if (q === 'dark' || q === 'light') root.dataset.theme = q;
+  const isDark = () => root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  const label = () => { btn.textContent = isDark() ? '라이트로 보기' : '다크로 보기'; };
+  btn.onclick = () => { root.dataset.theme = isDark() ? 'light' : 'dark'; label(); };
+  label();
+
+  // 장면 고르기 — 고른 장면을 잡는 배포 길 칸을 표시한다. 같은 버튼을 다시 누르면 해제.
+  const picks = document.querySelectorAll('.scene-picker button');
+  const steps = document.querySelectorAll('ol.road li');
+  const status = document.querySelector('.road-status');
+  picks.forEach(b => b.addEventListener('click', () => {
+    const on = b.getAttribute('aria-pressed') !== 'true';
+    picks.forEach(o => o.setAttribute('aria-pressed', 'false'));
+    const hits = on ? b.dataset.hit.split(' ') : [];
+    if (on) b.setAttribute('aria-pressed', 'true');
+    steps.forEach(s => s.classList.toggle('hit', hits.includes(s.dataset.step)));
+    status.textContent = on ? `「${b.textContent}」 장면은 ${hits.map(h => h + '번').join('·')} 칸에서 잡혀요.` : '';
+  }));
+</script>
+</body>
+</html>
